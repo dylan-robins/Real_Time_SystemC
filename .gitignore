@@ -1,6 +1,8 @@
-**/*.doc
-**/*.docx
-**/*.o
-**/*.pdf
-**/*.x
-**/.vscode
+.vscode/
+*.doc
+*.docx
+*.o
+*.x
+*.vcd
+*.pdf
+*.html
