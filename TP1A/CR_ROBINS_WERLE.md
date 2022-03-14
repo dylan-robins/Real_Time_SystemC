@@ -1,6 +1,17 @@
 # Compte rendu TP1
 
-## Partie A: producteur/consommateur
+## 1. Contents
+
+- [1. Contents](#1-contents)
+- [2. Authors](#2-authors)
+- [3. Partie A: producteur/consommateur](#3-partie-a-producteurconsommateur)
+
+## 2. Authors
+
++ Dylan Robins
++ Quentin Werlé
+
+## 3. Partie A: producteur/consommateur
 
 On commence par compiler le programme fourni:
 
