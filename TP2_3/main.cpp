@@ -14,10 +14,13 @@ int sc_main(int, char**) {
     IntHandler par1(1);
     IntHandler par2(2);
     IntHandler par3(3);
+    Proc4ArgumentHandler par4(2, 2, "Hello World!");
+
     top.cpu1.AddInitialTask(proc1, (void*)&par1, "cpu1 - proc1");
     top.cpu1.AddInitialTask(proc2, (void*)&par2, "cpu1 - proc2");
 
     top.cpu2.AddInitialTask(proc3, (void*)&par3, "cpu2 - proc3");
+    top.cpu2.AddInitialTask(proc4, (void*)&par4, "cpu2 - proc4");
 
     sc_start(200000, SC_NS);
 

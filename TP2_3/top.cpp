@@ -6,16 +6,20 @@ Top::Top(sc_module_name name)
     : sc_module(name)
     , cpu1("CPU1", 1)
     , cpu2("CPU2", 2)
+    , timer1("TIM1")
+    , timer2("TIM2")
     , cpu1_tasks_state("cpu1_tasks_state", MAX_TASK_PER_CPU)
     , cpu2_tasks_state("cpu2_tasks_state", MAX_TASK_PER_CPU)
 {
     cpu1.clock(clock);
     cpu1.interrupt(cpu1_interrupt);
     cpu1.current_task(cpu1_task);
+    timer1.tick(cpu1_interrupt);
 
     cpu2.clock(clock);
     cpu2.interrupt(cpu2_interrupt);
     cpu2.current_task(cpu2_task);
+    timer2.tick(cpu2_interrupt);
 
     cpu1.tasks_state.bind(cpu1_tasks_state);
     cpu2.tasks_state.bind(cpu2_tasks_state);

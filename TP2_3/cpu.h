@@ -2,7 +2,7 @@
 #define _CPU_H_
 
 #include "os.h"
-
+#include "timer.h"
 // Maximum number of tasks in one CPU
 #define MAX_TASK_PER_CPU 11
 

@@ -13,6 +13,7 @@ class Top : public sc_module {
     void driver();
 
     CPU cpu1, cpu2;
+    Timer timer1, timer2;
 
     sc_signal<bool> clock;
 

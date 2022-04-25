@@ -5,6 +5,10 @@
 - [1. Contents](#1-contents)
 - [2. Authors](#2-authors)
 - [3. Partie A: producteur/consommateur](#3-partie-a-producteurconsommateur)
+- [4. TP 2](#4-tp-2)
+  - [4.1. Compréhension du code fourni](#41-compréhension-du-code-fourni)
+  - [4.2. Ajout des tâches 4 et 5](#42-ajout-des-tâches-4-et-5)
+  - [4.3. Interuptions](#43-interuptions)
 
 ## 2. Authors
 
@@ -210,3 +214,139 @@ $ ./run.x
 ```
 
 On voit ici que la fifo n'a jamais l'occasion de se remplir puisque le consommateur retire les éléments des la fifo immédiatement après qu'ils aient été insérés par le producteur.
+
+## 4. TP 2
+
+### 4.1. Compréhension du code fourni
+
+On analyse maintenant un système plus complexe, constitué de deux processeurs gérés par un système d'exploitation léger implémenté en SystemC.
++ Processeur: élément matériel capable d'exécuter des opérations
++ Système d'exploitation (OS): mécanisme permettant de gérér l'exécution de plusieurs tâches au sein d'un processeur
++ Tâche: action ou suite d'instructions à réaliser
++ Noyeau (kernel): mécanisme reliant un système d'exploitation au matériel sur lequel il tourne
+
+Regardons maintenant l'ordonnancement des tâches définies par défaut.
+
+```
+$ ./run.x
+
+        SystemC 2.3.4_pub_rev_20191203-Accellera --- Mar 14 2022 14:37:05
+        Copyright (c) 1996-2019 by all Contributors,
+        ALL RIGHTS RESERVED
+
+Info: (I703) tracing timescale unit set: 1 ns (trace.vcd)
+cpu1 - proc1 1
+cpu2 - proc3 3
+cpu1 - proc2 2
+cpu2 - proc3 3
+cpu1 - proc1 1
+cpu1 - proc2 2
+cpu2 - proc3 3
+cpu1 - proc1 1
+cpu1 - proc2 2
+...
+```
+
+On voit que les deux CPUs exécutent trois processus: le cpu1 gère les processus 1 et 2, tandis que le cpu2 gère le processus 3. Ces processus sont en interne des *tâches*, et sont donc lancées de façon périodique par le scheduler. Les tâches sont définies de la façon suivante:
+
+```cpp
+bool proc1(Task* task, void* p) {
+    IntHandler* par = (IntHandler*)p;
+    cout << task->m_name << " " << par->i << endl;
+    CONSUME(par->i * 100);
+    return true;
+}
+```
+
+Ici, le paramètre p prend les valeurs 1, 2 et 3 pour les tâches 1, 2 et 3 respectivement. Le temps d'exécution des deux tâches s'exécutant sur le cpu 1 devrait donc être équivalent à celui du processus 3, exécuté à lui seul sur le cpu2. C'est bien ce qu'on voit sur le tracé des signaux ci-dessous:
+
+![Capture d'écran des signaux de contrôle des cpu 1 et 2](img/TP2_proc123.png)
+
+Nous constatons en revanche que dans le cpu1, la tâche 2 n'est lancée que quand la tâche 1 s'est terminée: le système n'est donc pas préemptif.
+
+La création d'une tâche se déroule de la façon suivante:
+1. Dans la fonction main, nous instantions le top, et nous ajoutons aux différents CPUs les différents processus que nous souhaitons qu'ils exécutent
+2. Chaque CPU soumet alors à son OS la nouvelle  avec la méthode `OS::RegisterTask`. Cette méthode ajoute simplement la nouvelle tâche à la fin du vecteur de tâches du système `m_tasks`.
+3. Lorsque la tâche en question arrive au sommet du vecteur de tâches, elle est exécutée. 
+4. Celle-ci s'exécute sur le CPU jusqu'à la fin ou jusqu'à l'apparition d'une interruption. L'interruption arrête la tâche en cours et met à jour le status de la tâche. Le fil d'éxecution est alors suspendu et pourra être relancé plus tard. 
+   
+La destruction quant à elle se déroule de la manière suivante:
+1. Dans `OS::TaskExit`, le status est mis à jour
+2. Une attente d'un front est réalisée afin de pouvoir visualiser son comportement sur la simulation
+3. La tâche est supprimée du vecteur de tâches `m_tasks`.
+
+
+### 4.2. Ajout des tâches 4 et 5
+
+On se propose de venir créer une nouvelle tâche proc4 qui recevra 3 arguments: deux entiers et une chaîne de caractère. Cette dernière affichera en continu la somme des deux paramètres ainsi que la chaîne de caractère. Son code est le suivant:
+
+```cpp
+bool proc4(Task* task, void* p) {
+    // To be completed
+    Proc4ArgumentHandler * par = (Proc4ArgumentHandler *) p;
+    std::cout << par->_a << " + " << par->_b << " = " << par->_a + par->_b 
+                << ", " << par->_s << std::endl;
+    CONSUME(50);
+    
+    return true;
+}
+```
+
+Nous avons choisi d'intégrer un temps d'exécution afin que son exécution soit visible dans l'outil de simulation. 
+
+AJOUTER CHRONOGRAMMES
+
+On se propose de modifier le processus 1 afin qu'il crée et lance à la volée une 5e tâche. On définit donc une nouvelle fonction `proc5` définissant le comportement de la nouvelle tâche, et on soumet la tâche à l'OS dans le corps de la fonction `proc1`:
+
+```cpp
+bool proc1(Task* task, void* p) {
+    IntHandler* par = (IntHandler*)p;
+    Proc4ArgumentHandler *par5 = new Proc4ArgumentHandler(10, 10, "Foo Bar!");
+
+    cout << task->m_name << " " << par->i << endl;
+
+    CONSUME(par->i * 100);
+
+    task->m_os->RegisterTask(proc5, (void *)par5, "cpu1 - proc5", 4, false);
+    
+    return true;
+}
+
+bool proc5(Task* task, void* p) {
+    Proc4ArgumentHandler * par = (Proc4ArgumentHandler *) p;
+    std::cout << par->_a << " + " << par->_b << " = " << par->_a + par->_b 
+                << ", " << par->_s << std::endl;
+    CONSUME(50);
+
+    delete par;
+
+    // Do not restart the process
+    return false;
+}
+```
+
+On observe alors l'affichage et le chronogramme suivant:
+
+```
+cpu1 - proc1 1
+cpu2 - proc3 3
+cpu1 - proc2 2
+2 + 2 = 4, Hello World!
+10 + 10 = 20, Foo Bar!
+cpu2 - proc3 3
+cpu1 - proc1 1
+cpu1 - proc2 2
+2 + 2 = 4, Hello World!
+10 + 10 = 20, Foo Bar!
+cpu2 - proc3 3
+cpu1 - proc1 1
+cpu1 - proc2 2
+```
+
+![Capture d'écran des signaux de contrôle des cpu 1 et 2 exécutant les processus 1 à 5](img/TP2_proc5.png)
+
+### 4.3. Interuptions
+
+Le port d'interruption des CPUs nous permettent de provoquer l'arrêt immédiat de la tâche en cours au profit d'une nouvelle tâche de priorité plus haute. Cela nous permet, dans un environnement temps réel, de garantir des temps de traitement plus faibles.
+
+![Chronogrammes avec interruptions](img/TP2_interrupts.png)

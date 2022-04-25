@@ -96,8 +96,7 @@ class producer : public sc_module {
     }
 
     void main() {
-        const char *str =
-            "Visit www.systemc.org and see what SystemC can do for you today!\n";
+        const char *str = "Visit www.systemc.org and see what SystemC can do for you today!\n";
 
         while (*str) {
             out->write(*str++);

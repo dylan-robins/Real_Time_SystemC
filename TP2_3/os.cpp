@@ -209,26 +209,33 @@ void OS::TaskBlock(sc_event_or_list &blocking_list) {
     m_kernel.SwitchContext(&blockTask->m_context, NULL);
 }
 
-void OS::TaskExit() {
-    // erase the task from the task vector and end its execution
+void OS::TaskExit () {
+     // erase the task from the task vector and end its execution
 
-    if (!m_currentTask) {
-        return;
-    }
+     if (!m_currentTask)
+         return;
 
-    std::vector<Task *>::iterator it;
-    it = m_tasks.begin();
-    while (it != m_tasks.end()) {
-        if (*it == m_currentTask) {
-            m_tasks.erase(it);
-            break;
-        }
-        it++;
-    }
+     m_currentTask->setState(TASK_DESTROYED);
 
-    m_currentTask->setState(TASK_DESTROYED);
-    m_kernel.SwitchContext(&m_currentTask->m_context, m_thisContext);
+     //Wait one clock cycle to let the trace be updated
+     wait(m_cpu->clock.posedge_event());
+
+     std::vector <Task *>::iterator        it;
+     it = m_tasks.begin ();
+     while (it != m_tasks.end ())
+     {
+         if (*it == m_currentTask)
+         {
+             m_tasks.erase (it);
+             break;
+         }
+         it++;
+     }
+
+     m_kernel.SwitchContext (&m_currentTask->m_context, m_thisContext);
 }
+
+
 Task *OS::SelectNextTask() {
     // Simply return the first task in the ready tasks queue
     return m_readyList.RemoveFirst();
