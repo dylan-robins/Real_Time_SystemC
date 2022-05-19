@@ -9,6 +9,7 @@
   - [4.1. Compréhension du code fourni](#41-compréhension-du-code-fourni)
   - [4.2. Ajout des tâches 4 et 5](#42-ajout-des-tâches-4-et-5)
   - [4.3. Interuptions](#43-interuptions)
+- [5. Compte rendu du TP 3](#5-compte-rendu-du-tp-3)
 
 ## 2. Authors
 
@@ -350,3 +351,7 @@ cpu1 - proc2 2
 Le port d'interruption des CPUs nous permettent de provoquer l'arrêt immédiat de la tâche en cours au profit d'une nouvelle tâche de priorité plus haute. Cela nous permet, dans un environnement temps réel, de garantir des temps de traitement plus faibles.
 
 ![Chronogrammes avec interruptions](img/TP2_interrupts.png)
+
+## 5. Compte rendu du TP 3
+
+Nous allons étudier dans ce dernier TP la communication entre processus avec un système de canaux. Cette méthode de communication permet de synchroniser des processus distincts et de leur permettre de partager des ressources.

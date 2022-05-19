@@ -1,5 +1,8 @@
 #include "processes.h"
 
+#define CHANBUFSIZE 256
+char channel0[CHANBUFSIZE];
+
 /* file containing the functions implementing the processes (also called tasks) */
 
 bool proc1(Task* task, void* p) {
@@ -55,4 +58,21 @@ bool proc5(Task* task, void* p) {
 
     // Do not restart the process
     return false;
+}
+
+bool proc_emitter(Task* task, void* p) {
+    IntHandler* par = (IntHandler*)p;
+
+    cout << task->m_name << " " << par->i << endl;
+
+    task->m_os->ChanOut(0, channel0, CHANBUFSIZE);
+    return true;
+}
+bool proc_receiver(Task* task, void* p) {
+    cout << task->m_name << endl;
+    int bufSize = CHANBUFSIZE;
+
+    task->m_os->ChanIn(0, channel0, bufSize);
+
+    return true;
 }

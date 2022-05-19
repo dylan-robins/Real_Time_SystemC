@@ -291,7 +291,31 @@ void OS::Consume(Task *task, unsigned long time) {
 }
 
 long OS::ChanIn(int idxChannel, char *buf, int &bufSize) {
-    // To be completed
+    // Introduce a reference to 'simplify' the code
+    Channel &myChannel = m_channels[idxChannel];
+
+    if (myChannel.isSet()) {
+        // Check buffer sizes
+        unsigned int size = bufSize;
+        if (bufSize > myChannel.getBufferSize()) {
+            cerr << " Could not transfer all data because ChanOut buffer size is too large!" << endl;
+            size = myChannel.getBufferSize();
+        }
+
+        // I arrived second at the rendez-vous, do the transfer
+        memcpy(buf, myChannel.getBuffer(), size);
+
+        // Reset the channel for future usage
+        myChannel.reset();
+
+        myChannel.m_event.notify();
+    } else {
+        // I arrived first at the rendez-vous, set the channel
+        myChannel.set(buf, bufSize);
+
+        sc_event_or_list blockingEvent(myChannel.m_event);
+        TaskBlock(blockingEvent);
+    }
 
     return 0;
 }
@@ -328,7 +352,44 @@ long OS::ChanOut(int idxChannel, char *buf, int bufSize) {
 }
 
 long OS::AltIn(int nChannels, int *channels, char *buf, int &bufSize, int &fromChannel) {
-    // To be completed
+    // Check if all channels are set
+    bool any_channel_is_set = false;
+    for (int idxChannel = 0; idxChannel < nChannels; idxChannel++) {
+        any_channel_is_set |= m_channels[idxChannel].isSet();
+    }
+
+    if (any_channel_is_set) {
+        for (int idxChannel = 0; idxChannel < nChannels; idxChannel++) {
+            // Introduce a reference to 'simplify' the code
+            Channel &myChannel = m_channels[idxChannel];
+
+            // Check buffer sizes
+            unsigned int size = bufSize;
+            if (bufSize > myChannel.getBufferSize()) {
+                cerr << " Could not transfer all data because ChanOut buffer size is too large!" << endl;
+                size = myChannel.getBufferSize();
+            }
+
+            // I arrived second at the rendez-vous, do the transfer
+            memcpy(buf, myChannel.getBuffer(), size);
+
+            // Reset the channel for future usage
+            myChannel.reset();
+
+            myChannel.m_event.notify();
+        }
+    } else {
+        for (int idxChannel = 0; idxChannel < nChannels; idxChannel++) {
+            // Introduce a reference to 'simplify' the code
+            Channel &myChannel = m_channels[idxChannel];
+            
+            // I arrived first at the rendez-vous, set the channel
+            myChannel.set(buf, bufSize);
+
+            sc_event_or_list blockingEvent(myChannel.m_event);
+            TaskBlock(blockingEvent);
+        }
+    }
     return 0;
 }
 
