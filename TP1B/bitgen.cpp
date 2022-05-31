@@ -14,11 +14,15 @@ BitGen::BitGen(sc_module_name name) : sc_module(name) {
 
 /* definition of the thread thProduce */
 void BitGen::thProduce() {
-    // Open file
     char c;
+    
+    // Open file
     ifstream dataFile("a.txt");
+
+    // Read the file byte by byte
     while (dataFile.read(&c, sizeof(char))) {
-        for (char i = 0; i < 8; i++) {            
+        // Loop over each bit of the current byte
+        for (unsigned char i = 0; i < 8; i++) {            
             // Shift out the i-th bit of the byte
             data_out = (c>>i) & 1;
             wait(2, SC_NS);

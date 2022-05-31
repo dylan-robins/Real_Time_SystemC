@@ -2,7 +2,7 @@
 SYSTEMC = /opt/systemc
 
 INCDIR = -I. -I.. -I$(SYSTEMC)/include
-LIBDIR = -L. -L.. -L$(SYSTEMC)/lib
+LIBDIR = -L. -L.. -L$(SYSTEMC)/lib-linux64
 
 TARGET_ARCH = linux64
 

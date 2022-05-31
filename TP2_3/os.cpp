@@ -282,7 +282,7 @@ void OS::Consume(Task *task, unsigned long time) {
         wait(m_cpu->clock.posedge_event());  // consume one clock cycle
         task->m_time = t;                    // update the time consumed by the task
 
-        if (m_cpu->interrupt) {
+        if (m_cpu->interrupt.posedge()) {
             TaskYield();
         }
     }

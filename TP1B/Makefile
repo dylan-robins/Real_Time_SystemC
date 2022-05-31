@@ -2,7 +2,7 @@ include env.mk
 
 all: $(EXE)
 
-$(EXE): $(OBJS) $(SYSTEMC)/lib/libsystemc.a 
+$(EXE): $(OBJS) $(SYSTEMC)/lib-linux64/libsystemc.a 
 	$(CC) $(CFLAGS) $(INCDIR) $(LIBDIR) -o $@ $(OBJS) $(LIBS) 2>&1 | c++filt
 
 .cpp.o:
