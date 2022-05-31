@@ -12,12 +12,24 @@ bool proc2(Task*, void*);
 bool proc3(Task*, void*);
 bool proc4(Task*, void*);
 bool proc5(Task*, void*);
+bool proc_emitter(Task*, void*);
+bool proc_emitter_bis(Task*, void*);
+bool proc_receiver(Task*, void*);
 
 // Structure used for transfering an  integer parameter through void pointer (without worrying the compiler)
 struct IntHandler {
     IntHandler(int i) : i(i) {}
 
     int i;
+};
+
+struct StrHandler {
+    char *str;
+    int len;
+
+    StrHandler(char * str) : str(str) {
+        len = strlen(str);
+    }
 };
 
 struct Proc4ArgumentHandler {

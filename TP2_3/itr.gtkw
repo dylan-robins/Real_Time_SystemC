@@ -1,0 +1,49 @@
+[*]
+[*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
+[*] Tue May 31 11:53:20 2022
+[*]
+[dumpfile] "/home/dylan/Documents/E2I/Real_Time_SystemC/TP2_3/trace.vcd"
+[dumpfile_mtime] "Tue May 31 11:50:52 2022"
+[dumpfile_size] 649670
+[savefile] "/home/dylan/Documents/E2I/Real_Time_SystemC/TP2_3/itr.gtkw"
+[timestart] 0
+[size] 1920 1011
+[pos] -51 -51
+*-11.931576 2000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 227
+[signals_width] 425
+[sst_expanded] 1
+[sst_vpaned_height] 284
+@28
+SystemC.clock
+SystemC.cpu1_itr
+@22
+SystemC.cpu1_task[7:0]
+SystemC.cpu1_task0_state[7:0]
+SystemC.cpu1_task1_state[7:0]
+SystemC.cpu1_task2_state[7:0]
+SystemC.cpu1_task3_state[7:0]
+SystemC.cpu1_task4_state[7:0]
+SystemC.cpu1_task5_state[7:0]
+SystemC.cpu1_task6_state[7:0]
+SystemC.cpu1_task7_state[7:0]
+SystemC.cpu1_task8_state[7:0]
+SystemC.cpu1_task9_state[7:0]
+SystemC.cpu1_task10_state[7:0]
+SystemC.cpu2_itr
+@23
+SystemC.cpu2_task[7:0]
+@22
+SystemC.cpu2_task0_state[7:0]
+SystemC.cpu2_task1_state[7:0]
+SystemC.cpu2_task2_state[7:0]
+SystemC.cpu2_task3_state[7:0]
+SystemC.cpu2_task4_state[7:0]
+SystemC.cpu2_task5_state[7:0]
+SystemC.cpu2_task6_state[7:0]
+SystemC.cpu2_task7_state[7:0]
+SystemC.cpu2_task8_state[7:0]
+SystemC.cpu2_task9_state[7:0]
+SystemC.cpu2_task10_state[7:0]
+[pattern_trace] 1
+[pattern_trace] 0

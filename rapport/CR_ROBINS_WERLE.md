@@ -476,7 +476,7 @@ class Timer : public sc_module {
 
 void Timer::main() {
     bool state = true;
-    
+
     while (true) {
         tick = state;
         wait(1, SC_US);
@@ -526,4 +526,180 @@ Cette modification a l'avantage de réaliser un changement de contexte uniquemen
 
 ## 5. TP3: La communication intra-processeur dans un système multi-tâches et multi-processeurs
 
-Nous allons étudier dans ce dernier TP la communication entre processus avec un système de canaux. Cette méthode de communication permet de synchroniser des processus distincts et de leur permettre de partager des ressources.
+Nous allons étudier dans ce dernier TP la communication entre processus avec un système de canaux. Cette méthode de communication permet de synchroniser des processus distincts et de leur permettre de partager des ressources. Nous distinguons deux cas:
++ Communication entre un émetteur et un récepteur (SESR):
+
+![Communication entre un émetteur et un récepteur](img/comm_SESR.png)
+
++ Communication entre plusieurs émetteurs et un récepteur (PESR):
+
+![Communication entre plusieurs émetteurs et un récepteur](img/comm_pesr.png)
+
+L'implémentation de la fonctionnalité SESR repose sur deux méthodes: `OS::ChanIn`, `OS::ChanOut`. `OS::ChanOut` est déjà implémentée, nous pouvons donc implémenter la deuxième en nous basant sur cette dernière:
+
+```cpp
+long OS::ChanIn(int idxChannel, char *buf, int &bufSize) {
+    // Introduce a reference to 'simplify' the code
+    Channel &myChannel = m_channels[idxChannel];
+
+    if (myChannel.isSet()) {
+        // Check buffer sizes
+        unsigned int size = bufSize;
+        if (bufSize > myChannel.getBufferSize()) {
+            cerr << " Could not transfer all data because ChanOut buffer size is too large!" << endl;
+            size = myChannel.getBufferSize();
+        }
+
+        // I arrived second at the rendez-vous, do the transfer
+        memcpy(buf, myChannel.getBuffer(), size);
+
+        // Reset the channel for future usage
+        myChannel.reset();
+
+        myChannel.m_event.notify();
+    } else {
+        // I arrived first at the rendez-vous, set the channel
+        myChannel.set(buf, bufSize);
+
+        sc_event_or_list blockingEvent(myChannel.m_event);
+        TaskBlock(blockingEvent);
+    }
+
+    return 0;
+}
+```
+
+Pour tester cette fonctionnalité, nous créons deux tâches qui communiqueront entre elles: les tâches proc_emitter et proc_receiver.
+
+```cpp
+bool proc_emitter(Task* task, void* p) {
+    auto par = (StrHandler*)p;
+
+    // Place message to send in the channel
+    strncpy(channel0, par->str, par->len);
+
+    std::cout << "[E] Sending \"" << channel0 << '"' << std::endl;
+
+    // Send data
+    task->m_os->ChanOut(0, channel0, CHANBUFSIZE);
+    return false;
+}
+bool proc_receiver(Task* task, void* p) {
+    int bufSize = CHANBUFSIZE;
+
+    // Receive data
+    task->m_os->ChanIn(0, channel0, bufSize);
+
+    std::cout << "[R] Read \"" << channel0 << '"' << std::endl;
+
+    return false;
+}
+```
+
+Nous compilons ce programme et nous observe l'affichage suivant:
+
+```
+
+        SystemC 2.3.3-Accellera --- May  8 2022 19:46:36
+        Copyright (c) 1996-2018 by all Contributors,
+        ALL RIGHTS RESERVED
+
+Info: (I703) tracing timescale unit set: 1 ns (trace.vcd)
+[E] Sending "Hello world!"
+[R] Read "Hello world!"
+```
+
+Nous observons que la communication via le canal de communication s'est bien déroulée puisque l'information a été transmise d'une tâche à une autre et que le récepteur attend bien que la communication se fasse avant d'afficher son contenu.
+
+Afin de réaliser une communication PESR, nous avons besoin des deux méthodes précédentes et d'une nouvelle méthode nommée Altin() qui permet de gérer le fait que nous avons plusieurs émetteurs:
+
+```cpp
+long OS::AltIn(int nChannels, int *channels, char *buf, int &bufSize, int &fromChannel) {
+    // Check if all channels are set
+    bool any_channel_is_set = false;
+    for (int idxChannel = 0; idxChannel < nChannels; idxChannel++) {
+        any_channel_is_set |= m_channels[idxChannel].isSet();
+    }
+
+    if (any_channel_is_set) {
+        for (int idxChannel = 0; idxChannel < nChannels; idxChannel++) {
+            // Introduce a reference to 'simplify' the code
+            Channel &myChannel = m_channels[idxChannel];
+
+            // Check buffer sizes
+            unsigned int size = bufSize;
+            if (bufSize > myChannel.getBufferSize()) {
+                cerr << " Could not transfer all data because ChanOut buffer size is too large!" << endl;
+                size = myChannel.getBufferSize();
+            }
+
+            // I arrived second at the rendez-vous, do the transfer
+            memcpy(buf, myChannel.getBuffer(), size);
+
+            // Reset the channel for future usage
+            myChannel.reset();
+
+            myChannel.m_event.notify();
+        }
+    } else {
+        for (int idxChannel = 0; idxChannel < nChannels; idxChannel++) {
+            // Introduce a reference to 'simplify' the code
+            Channel &myChannel = m_channels[idxChannel];
+
+            // I arrived first at the rendez-vous, set the channel
+            myChannel.set(buf, bufSize);
+
+            sc_event_or_list blockingEvent(myChannel.m_event);
+            TaskBlock(blockingEvent);
+        }
+    }
+    return 0;
+}
+```
+
+Afin de tester notre code, nous allons créer un deuxième émetteur, nommé proc_emitter_bis. Ce qui permettra de vérifier que le premier des deux émetteur qui arrivera viendra vérouiller le canal, ce qui empêchera le deuxième de venir se connecter au récepteur pendant que le premier est en train de communiquer avec ce dernier. Nous avons ajouté un temps d'attente entre l'envoi des deux informations afin de bien voir le bon séquencement des tâches. Pour ce faire, nous avons modifié les tâches proc_emitter et proc_emitter_bis de la manière suivante: 
+
+```cpp
+bool proc_emitter(Task* task, void* p) {
+    auto par = (StrHandler*)p;
+
+    CONSUME(500);
+
+    // Place message to send in the channel
+    strncpy(channel0, par->str, par->len);
+
+    std::cout << "[E] Sending \"" << channel0 << '"' << std::endl;
+
+    // Send data
+    task->m_os->ChanOut(0, channel0, CHANBUFSIZE);
+    return false;
+}
+
+bool proc_emitter_bis(Task* task, void* p) {
+    auto par = (StrHandler*)p;
+
+    // Place message to send in the channel
+    strncpy(channel1, par->str, par->len);
+    
+    std::cout << "[E] Sending \"" << channel1 << '"' << std::endl;
+
+    // Send data
+    task->m_os->ChanOut(0, channel1, CHANBUFSIZE);
+    return false;
+}
+```
+
+Avec ces modifications, nous avons donc dans le terminal l'affichage suivant
+
+```
+        SystemC 2.3.3-Accellera --- May  8 2022 19:46:36
+        Copyright (c) 1996-2018 by all Contributors,
+        ALL RIGHTS RESERVED
+
+Info: (I703) tracing timescale unit set: 1 ns (trace.vcd)
+[E] Sending "Good-bye planet!"
+[R] Read "Good-bye planet!"
+[E] Sending "Hello world!"
+[R] Read "Hello world!"
+```
+Nous remarquons que les deux tâches ne se superposent pas, et que le premier arrivé envoie sa donnée en premier puis rend disponible le récepteur en libérant le canal de communication bien que la tâche envoyant "Hello world" soit la première à être définie.

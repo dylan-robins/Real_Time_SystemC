@@ -1,7 +1,7 @@
 #include "processes.h"
 
 #define CHANBUFSIZE 256
-char channel0[CHANBUFSIZE];
+char channels[MAX_CHANNEL][CHANBUFSIZE];
 
 /* file containing the functions implementing the processes (also called tasks) */
 
@@ -61,18 +61,45 @@ bool proc5(Task* task, void* p) {
 }
 
 bool proc_emitter(Task* task, void* p) {
-    IntHandler* par = (IntHandler*)p;
+    const int PROC_CHAN_NUM = 0;
+    auto par = (StrHandler*)p;
+    std::cout << "[E1] Starting..." << std::endl;
 
-    cout << task->m_name << " " << par->i << endl;
+    std::cout << "[E1] Waiting..." << std::endl;
+    CONSUME(500);
 
-    task->m_os->ChanOut(0, channel0, CHANBUFSIZE);
-    return true;
+    // Place message to send in the channel
+    strncpy(channels[PROC_CHAN_NUM], par->str, par->len);
+
+    std::cout << "[E1] Sending \"" << channels[PROC_CHAN_NUM] << '"' << std::endl;
+
+    // Send data
+    task->m_os->ChanOut(PROC_CHAN_NUM, channels[PROC_CHAN_NUM], CHANBUFSIZE);
+    return false;
 }
+
+bool proc_emitter_bis(Task* task, void* p) {
+    const int PROC_CHAN_NUM = 1;
+    auto par = (StrHandler*)p;
+    std::cout << "[E2] Starting..." << std::endl;
+
+    // Place message to send in the channel
+    strncpy(channels[PROC_CHAN_NUM], par->str, par->len);
+    
+    std::cout << "[E2] Sending \"" << channels[PROC_CHAN_NUM] << '"' << std::endl;
+
+    // Send data
+    task->m_os->ChanOut(PROC_CHAN_NUM, channels[PROC_CHAN_NUM], CHANBUFSIZE);
+    return false;
+}
+
 bool proc_receiver(Task* task, void* p) {
-    cout << task->m_name << endl;
     int bufSize = CHANBUFSIZE;
+    std::cout << "[R] Starting..." << std::endl;
 
-    task->m_os->ChanIn(0, channel0, bufSize);
+    task->m_os->AltIn(MAX_CHANNEL, task->m_os->m_channels, channels[0], MAX_CHANNEL, 0);
+    task->m_os->AltIn(MAX_CHANNEL, task->m_os->m_channels, channels[1], MAX_CHANNEL, 1);
+    std::cout << "[R] Read \"" << channels[i] << '"' << std::endl;
 
-    return true;
+    return false;
 }
