@@ -97,9 +97,12 @@ bool proc_receiver(Task* task, void* p) {
     int bufSize = CHANBUFSIZE;
     std::cout << "[R] Starting..." << std::endl;
 
-    task->m_os->AltIn(MAX_CHANNEL, task->m_os->m_channels, channels[0], MAX_CHANNEL, 0);
-    task->m_os->AltIn(MAX_CHANNEL, task->m_os->m_channels, channels[1], MAX_CHANNEL, 1);
-    std::cout << "[R] Read \"" << channels[i] << '"' << std::endl;
+    int usedChannels[2] = {0, 1};
+
+    task->m_os->AltIn(MAX_CHANNEL, usedChannels, channels[0], bufSize, bufSize);
+    task->m_os->AltIn(MAX_CHANNEL, usedChannels, channels[1], bufSize, bufSize);
+    std::cout << "[R] Read \"" << channels[0] << '"' << std::endl;
+    std::cout << "[R] Read \"" << channels[1] << '"' << std::endl;
 
     return false;
 }

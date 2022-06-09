@@ -13,6 +13,7 @@ Dylan Robins, Quentin Werlé - E2I5 2022
   - [4.2. Ajout des tâches 4 et 5](#42-ajout-des-tâches-4-et-5)
   - [4.3. Interuptions](#43-interuptions)
 - [5. TP3: La communication intra-processeur dans un système multi-tâches et multi-processeurs](#5-tp3-la-communication-intra-processeur-dans-un-système-multi-tâches-et-multi-processeurs)
+- [6. Conclusion](#6-conclusion)
 
 ## 2. TP1A: producteur/consommateur
 
@@ -535,7 +536,7 @@ Nous allons étudier dans ce dernier TP la communication entre processus avec un
 
 ![Communication entre plusieurs émetteurs et un récepteur](img/comm_pesr.png)
 
-L'implémentation de la fonctionnalité SESR repose sur deux méthodes: `OS::ChanIn`, `OS::ChanOut`. `OS::ChanOut` est déjà implémentée, nous pouvons donc implémenter la deuxième en nous basant sur cette dernière:
+L'implémentation de la fonctionnalité SESR repose sur deux méthodes: `OS::ChanIn` et `OS::ChanOut`. `OS::ChanOut` est déjà implémentée, nous pouvons donc implémenter la deuxième en nous basant sur l'existant:
 
 ```cpp
 long OS::ChanIn(int idxChannel, char *buf, int &bufSize) {
@@ -572,6 +573,8 @@ long OS::ChanIn(int idxChannel, char *buf, int &bufSize) {
 Pour tester cette fonctionnalité, nous créons deux tâches qui communiqueront entre elles: les tâches proc_emitter et proc_receiver.
 
 ```cpp
+int channel0[CHANBUFSIZE];
+
 bool proc_emitter(Task* task, void* p) {
     auto par = (StrHandler*)p;
 
@@ -611,7 +614,24 @@ Info: (I703) tracing timescale unit set: 1 ns (trace.vcd)
 
 Nous observons que la communication via le canal de communication s'est bien déroulée puisque l'information a été transmise d'une tâche à une autre et que le récepteur attend bien que la communication se fasse avant d'afficher son contenu.
 
-Afin de réaliser une communication PESR, nous avons besoin des deux méthodes précédentes et d'une nouvelle méthode nommée Altin() qui permet de gérer le fait que nous avons plusieurs émetteurs:
+Afin de réaliser une communication PESR, nous avons besoin des deux méthodes précédentes et d'une nouvelle méthode nommée `OS::AltIn()` qui permet de relier plusieurs émetteurs à un unique récepteur. Pour ce faire, le récepteur doit effectuer la même mécanique que dans la méthode `OS::ChanIn` mais élargi à plusieurs canaux. L'algorithme à implémenter est le suivant:
+
+```pseudocode
+canaux := tableau de N canaux de communication
+si aucun des canaux n'est connecté {
+    Attendre qu'un canal soit connecté
+}
+sinon {
+    pour chaque canal dans $canaux {
+        si le canal est connecté {
+            recevoir les données
+        }
+    }
+}
+
+```
+
+On implémente ensuite cela en C++ de la façon suivante:
 
 ```cpp
 long OS::AltIn(int nChannels, int *channels, char *buf, int &bufSize, int &fromChannel) {
@@ -657,34 +677,53 @@ long OS::AltIn(int nChannels, int *channels, char *buf, int &bufSize, int &fromC
 }
 ```
 
-Afin de tester notre code, nous allons créer un deuxième émetteur, nommé proc_emitter_bis. Ce qui permettra de vérifier que le premier des deux émetteur qui arrivera viendra vérouiller le canal, ce qui empêchera le deuxième de venir se connecter au récepteur pendant que le premier est en train de communiquer avec ce dernier. Nous avons ajouté un temps d'attente entre l'envoi des deux informations afin de bien voir le bon séquencement des tâches. Pour ce faire, nous avons modifié les tâches proc_emitter et proc_emitter_bis de la manière suivante: 
+Afin de tester notre code, nous allons créer un deuxième émetteur, nommé proc_emitter_bis. Ce qui permettra de vérifier que le premier des deux émetteur qui arrivera viendra vérouiller le canal, ce qui empêchera le deuxième de venir se connecter au récepteur pendant que le premier est en train de communiquer avec ce dernier. Nous avons ajouté un temps d'attente entre l'envoi des deux informations afin de bien voir le bon séquencement des tâches. Pour ce faire, nous avons modifié les tâches proc_emitter et proc_emitter_bis de la manière suivante:
 
 ```cpp
 bool proc_emitter(Task* task, void* p) {
+    const int PROC_CHAN_NUM = 0;
     auto par = (StrHandler*)p;
+    std::cout << "[E1] Starting..." << std::endl;
 
+    std::cout << "[E1] Waiting..." << std::endl;
     CONSUME(500);
 
     // Place message to send in the channel
-    strncpy(channel0, par->str, par->len);
+    strncpy(channels[PROC_CHAN_NUM], par->str, par->len);
 
-    std::cout << "[E] Sending \"" << channel0 << '"' << std::endl;
+    std::cout << "[E1] Sending \"" << channels[PROC_CHAN_NUM] << '"' << std::endl;
 
     // Send data
-    task->m_os->ChanOut(0, channel0, CHANBUFSIZE);
+    task->m_os->ChanOut(PROC_CHAN_NUM, channels[PROC_CHAN_NUM], CHANBUFSIZE);
     return false;
 }
 
 bool proc_emitter_bis(Task* task, void* p) {
+    const int PROC_CHAN_NUM = 1;
     auto par = (StrHandler*)p;
+    std::cout << "[E2] Starting..." << std::endl;
 
     // Place message to send in the channel
-    strncpy(channel1, par->str, par->len);
-    
-    std::cout << "[E] Sending \"" << channel1 << '"' << std::endl;
+    strncpy(channels[PROC_CHAN_NUM], par->str, par->len);
+
+    std::cout << "[E2] Sending \"" << channels[PROC_CHAN_NUM] << '"' << std::endl;
 
     // Send data
-    task->m_os->ChanOut(0, channel1, CHANBUFSIZE);
+    task->m_os->ChanOut(PROC_CHAN_NUM, channels[PROC_CHAN_NUM], CHANBUFSIZE);
+    return false;
+}
+
+bool proc_receiver(Task* task, void* p) {
+    int bufSize = CHANBUFSIZE;
+    std::cout << "[R] Starting..." << std::endl;
+
+    int usedChannels[2] = {0, 1};
+
+    task->m_os->AltIn(MAX_CHANNEL, usedChannels, channels[0], bufSize, bufSize);
+    task->m_os->AltIn(MAX_CHANNEL, usedChannels, channels[1], bufSize, bufSize);
+    std::cout << "[R] Read \"" << channels[0] << '"' << std::endl;
+    std::cout << "[R] Read \"" << channels[1] << '"' << std::endl;
+
     return false;
 }
 ```
@@ -697,9 +736,20 @@ Avec ces modifications, nous avons donc dans le terminal l'affichage suivant
         ALL RIGHTS RESERVED
 
 Info: (I703) tracing timescale unit set: 1 ns (trace.vcd)
-[E] Sending "Good-bye planet!"
-[R] Read "Good-bye planet!"
-[E] Sending "Hello world!"
-[R] Read "Hello world!"
+[E1] Starting...
+[E1] Waiting...
+[R] Starting...
+Connecting to new channel...
+[E2] Starting...
+[E2] Sending "Good-bye planet!"
+[E1] Sending "Hello world!"
+Connecting to new channel...
+run.x: ./channel.h:14: void Channel::set(char*, int): Assertion `m_empty' failed.
+[1]    28546 IOT instruction (core dumped)  ./run.x
 ```
-Nous remarquons que les deux tâches ne se superposent pas, et que le premier arrivé envoie sa donnée en premier puis rend disponible le récepteur en libérant le canal de communication bien que la tâche envoyant "Hello world" soit la première à être définie.
+
+Malheureusement nous n'avons pas le comportement attendu, et nous ne sommes pas parvenus à trouver une solution.
+
+## 6. Conclusion
+
+Au cours de ce projet, nous avons pu apprendre le fonctionnement de la librairie SystemC et les éléments de syntaxe permettant de modéliser et de simuler directement en C++ des éléments matériels comme nous l'avions fait jusque maintenant en VHDL. Nous avons également pu apprendre le rôle et le fonctionnement d'un noyau et d'un système d'exploitation temps réel, en nous focalisant plus particulièrement sur les problématiques de partage de ressources et de communication inter-processus.

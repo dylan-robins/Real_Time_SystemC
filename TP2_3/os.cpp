@@ -360,6 +360,7 @@ long OS::AltIn(int nChannels, int *channels, char *buf, int &bufSize, int &fromC
 
     if (any_channel_is_set) {
         for (int idxChannel = 0; idxChannel < nChannels; idxChannel++) {
+            std::cout << "Connecting to existing channel..." << std::endl;
             // Introduce a reference to 'simplify' the code
             Channel &myChannel = m_channels[idxChannel];
 
@@ -380,6 +381,7 @@ long OS::AltIn(int nChannels, int *channels, char *buf, int &bufSize, int &fromC
         }
     } else {
         for (int idxChannel = 0; idxChannel < nChannels; idxChannel++) {
+            std::cout << "Connecting to new channel..." << std::endl;
             // Introduce a reference to 'simplify' the code
             Channel &myChannel = m_channels[idxChannel];
             
