@@ -51,7 +51,7 @@ On constate qu'on instancie un objet de classe `top`, puis nous démarrons la si
 
 Le constructeur de l'objet `top` instantie et connecte ensemble trois objets: une instance de `fifo`, une instance de `producer` et une instance de `consumer`. Les classes `producer` et `consumer` sont elles aussi des modules SystemC, mais contrairement à `top` elles comportent des variables publiques de type `sc_port`, qui comme leur nom l'indique modélisent des ports d'interconnexion entre les entités comme nous l'avons vu en VHDL. La classe `sc_port` est un template C++ prenant en paramètre une classe héritant de `sc_interface` qui permet de définir les opérations que nous pouvons effectuer sur port. Les constructeurs de ces deux classes font appel à la macro `SC_THREAD(main);` , permettant de simuler ces modules en parallèle dans des threads concurrents, et les deux classes comportent également une méthode `void main()` définissant le comportement du modèle (ce qui correspond à un "process" en VHDL).
 
-La classe `fifo` est plus intéressante. Cette classe modélise un registre FIFO pouvant contenir jusqu'à 10 éléments de type `char` (= `int8_t`). Contrairement aux autres classes vues jusqu'à présent, la `fifo` n'hérite pas de la classe `sc_module` mais de `sc_channel`, `write_if` et `read_if`. En effet, au lieu de modéliser une entité elle modélise un canal de communication entre deux entités, et doit à ce titre hériter d'une interface de lecture, d'une interface d'écriture. Puisqu'elle modélise simplement un moyen de communication et non pas une entité indépendante, cette classe ne crée pas de thread dédié pour son exécution et ne définit pas de `main()`. Son état est complètement piloté depuis les méthodes `read` et `write`, appelées dans par les instances de `producer` et de `consumer` et manipulant les variables membres de la classe. Parmi ces variables on trouve deux instances de `sc_event`, permettant d'établir une communication inter-module suivant une méthode "event-driven" et utilisés ici afin d'éviter les dépassements mémoire.
+La classe `fifo` est plus intéressante. Cette classe modélise un registre FIFO pouvant contenir jusqu'à 10 éléments de type `char` (= `int8_t`). Contrairement aux autres classes vues jusqu'à présent, la `fifo` n'hérite pas de la classe `sc_module` mais de `sc_channel`, `write_if` et `read_if`. En effet, au lieu de modéliser une entité elle modélise un canal de communication entre deux entités, et doit à ce titre hériter d'une interface de lecture, d'une interface d'écriture. Puisqu'elle modélise simplement un moyen de communication et non pas une entité indépendante, cette classe ne crée pas de thread dédié pour son exécution et ne définit pas de `main()`. Son état est complètement piloté depuis les méthodes `read` et `write`, appelées par les instances de `producer` et de `consumer` et manipulant les variables membres de la classe. Parmi ces variables on trouve deux instances de `sc_event`, permettant d'établir une communication inter-module suivant une méthode "event-driven" et utilisés ici afin d'éviter les dépassements mémoire.
 
 On modifie maintenant le programme en rajoutant un appel à `wait(20, SC_NS)` dans le fil principal du consommateur. On modifie également le format d'affichage afin de pouvoir suivre plus facilement le comportement du programme. On obtient donc l'affichage suivant:
 
@@ -108,7 +108,7 @@ $ ./run.x
 2580 ns: %
 ```
 
-On voit ici que la fifo n'a jamais l'occasion de se remplir puisque le consommateur retire les éléments des la fifo immédiatement après qu'ils aient été insérés par le producteur.
+On voit ici que la fifo n'a jamais l'occasion de se remplir puisque le consommateur retire les éléments de la fifo immédiatement après qu'ils aient été insérés par le producteur.
 
 
 ## 3. TP1B: Modélisation d'un système simple
@@ -337,7 +337,7 @@ On analyse maintenant un système plus complexe, constitué de deux processeurs 
 + Processeur: élément matériel capable d'exécuter des opérations
 + Système d'exploitation (OS): mécanisme permettant de gérér l'exécution de plusieurs tâches au sein d'un processeur
 + Tâche: action ou suite d'instructions à réaliser
-+ Noyeau (kernel): mécanisme reliant un système d'exploitation au matériel sur lequel il tourne
++ Noyau (kernel): mécanisme reliant un système d'exploitation au matériel sur lequel il tourne
 
 Regardons maintenant l'ordonnancement des tâches définies par défaut.
 
@@ -486,7 +486,7 @@ void Timer::main() {
 }
 
 ```
-Nous aimerions avoir des changements de contexte aux moments suivants: lors d'une fin d'execussion d'une tâche ou lors d'une interruption.
+Nous aimerions avoir des changements de contexte aux moments suivants: lors d'une fin d'exécution d'une tâche ou lors d'une interruption.
 Cependant, on s'est rendu compte que lorsque l'interruption survenait, on avait constamment un changement de contexte, ce qui caractérisait un basculement d'une tâche à l'autre continuellement, comme nous pouvons le voir sur la figure ci-dessous:
 
 ![Chronogrammes avec interruptions](img/TP2_interrupts.png)
@@ -599,7 +599,7 @@ bool proc_receiver(Task* task, void* p) {
 }
 ```
 
-Nous compilons ce programme et nous observe l'affichage suivant:
+Nous compilons ce programme et nous observons l'affichage suivant:
 
 ```
 
@@ -728,7 +728,7 @@ bool proc_receiver(Task* task, void* p) {
 }
 ```
 
-Avec ces modifications, nous avons donc dans le terminal l'affichage suivant
+Avec ces modifications, nous avons donc dans le terminal l'affichage suivant:
 
 ```
         SystemC 2.3.3-Accellera --- May  8 2022 19:46:36
@@ -752,4 +752,4 @@ Malheureusement nous n'avons pas le comportement attendu, et nous ne sommes pas 
 
 ## 6. Conclusion
 
-Au cours de ce projet, nous avons pu apprendre le fonctionnement de la librairie SystemC et les éléments de syntaxe permettant de modéliser et de simuler directement en C++ des éléments matériels comme nous l'avions fait jusque maintenant en VHDL. Nous avons également pu apprendre le rôle et le fonctionnement d'un noyau et d'un système d'exploitation temps réel, en nous focalisant plus particulièrement sur les problématiques de partage de ressources et de communication inter-processus.
+Au cours de ce projet, nous avons pu apprendre le fonctionnement de la librairie SystemC et les éléments de syntaxe permettant de modéliser et de simuler directement en C++ des éléments matériels comme nous l'avions fait jusqu'à maintenant en VHDL. Nous avons également pu apprendre le rôle et le fonctionnement d'un noyau et d'un système d'exploitation temps réel, en nous focalisant plus particulièrement sur les problématiques de partage de ressources et de communication inter-processus.
